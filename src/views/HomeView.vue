@@ -1,7 +1,13 @@
 <template>
   <Header />
-  <main class="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+  <main class="flex flex-col items-center justify-center py-20 bg-gray-100 p-4">
     <h1 class="text-3xl font-bold mb-6">Pre-Order Form</h1>
+    <div v-if="errorMessage" class="bg-red-100 text-red-700 p-4 rounded mb-4">
+      {{ errorMessage }}
+    </div>
+    <div v-if="successMessage" class="bg-green-100 text-green-700 p-4 rounded mb-4">
+      {{ successMessage }}
+    </div>
     <form @submit.prevent="submitForm" class="bg-white shadow-md rounded px-8 py-6 space-y-4 w-full max-w-md">
       <div>
         <label for="name" class="block text-sm font-medium text-gray-700">Name:</label>
@@ -20,14 +26,13 @@
       </div>
       <div>
         <label for="product" class="block text-sm font-medium text-gray-700">Product:</label>
-        <select id="product" v-model="form.product" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300">
-          <option value="">Select a product</option>
-          <option value="Product 1">Product 1</option>
-          <option value="Product 2">Product 2</option>
-          <option value="Product 3">Product 3</option>
+        <select id="product" v-model="form.product_id" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300">
+          <option value="" selected>Select a product</option>
+          <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
         </select>
         <p v-if="errors.product" class="text-red-500 text-xs italic">{{ errors.product }}</p>
       </div>
+      <vue-recaptcha ref="recaptcha" :sitekey="sitekey" @verify="verifyMethod"></vue-recaptcha>
       <button type="submit" class="bg-blue-500 text-white rounded p-2 hover:bg-blue-600 transition duration-200">Submit</button>
     </form>
   </main>
@@ -35,28 +40,64 @@
 
 <script>
 import Header from '../components/Header.vue';
+import axios from 'axios';
 
+const apiUrl = import.meta.env.VITE_API_URL;
+import { VueRecaptcha } from 'vue-recaptcha';
 export default {
   components: {
-    Header
+    Header,
+    VueRecaptcha 
   },
   data() {
     return {
+      sitekey: import.meta.env.VITE_RECAPTCHA_SITE_KEY,
       form: {
         name: '',
         email: '',
-        product: '',
-        phone: ''
+        product_id: '',
+        phone: '',
+        recaptcha: ''
       },
-      errors: {}
+      errors: {},
+      products: [],
+      errorMessage: '',
+      successMessage: '',
     };
   },
+  computed: {
+    isXyzEmail() {
+      return this.form.email.endsWith('@xyz.com');
+    }
+  },
   methods: {
+    verifyMethod(response) {
+      this.form.recaptcha = response
+    },
     submitForm() {
       this.validateForm();
       if (Object.keys(this.errors).length === 0) {
-        console.log(this.form);
-        // Here you can handle the form submission, e.g., send data to an API
+        
+        axios.post(`${apiUrl}/pre-orders`, {
+          name: this.form.name,
+          email: this.form.email,
+          product_id: this.form.product_id,
+          phone: this.form.phone,
+          'g-recaptcha-response': this.form.recaptcha,
+        })
+        .then(response => {
+          this.errorMessage = ''; // Clear any previous error messages
+          this.successMessage = 'Your pre-order has been submitted successfully!';
+          this.form = { name: '', email: '', product_id: '', phone: '' }; // Reset the form
+        })
+        .catch(error => {
+          if (error.response && error.response.status === 422) {
+            this.errorMessage = error.response.data.message;
+          }  else {
+            this.errorMessage = 'An unexpected error occurred. Please try again later.';
+          }
+          console.error('Error submitting pre-order:', error);
+        });
       }
     },
     validateForm() {
@@ -68,16 +109,25 @@ export default {
       if (!emailPattern.test(this.form.email)) {
         this.errors.email = 'Please enter a valid email.';
       }
-      if (!this.form.product) {
+      if (!this.form.product_id) {
         this.errors.product = 'Please select a product.';
       }
       if (this.isXyzEmail && !this.form.phone) {
         this.errors.phone = 'Phone number is required for @xyz.com emails.';
       }
     },
-    isXyzEmail() {
-      return this.form.email.endsWith('@xyz.com');
-    }
-  }
+    fetchProducts() {
+      axios.get(`${apiUrl}/products`)
+        .then(response => {
+          this.products = response.data;
+        })
+        .catch(error => {
+          console.error('Error fetching products:', error);
+        });
+    },
+  },
+  mounted() {
+    this.fetchProducts();
+  },
 };
 </script>

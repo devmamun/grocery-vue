@@ -6,6 +6,12 @@
     </div>
   </div>
   <main class="flex flex-col items-center justify-center bg-gray-100 p-5 py-20">
+    <div v-if="errorMessage" class="bg-red-100 text-red-700 p-4 rounded mb-4">
+      {{ errorMessage }}
+    </div>
+    <div v-if="successMessage" class="bg-green-100 text-green-700 p-4 rounded mb-4">
+      {{ successMessage }}
+    </div>
     <form @submit.prevent="submitForm" class="bg-white shadow-md rounded px-8 py-6 space-y-4 w-full max-w-md">
       <div>
         <label for="name" class="block text-sm font-medium text-gray-700">Name:</label>
@@ -24,30 +30,35 @@
       </div>
       <div>
         <label for="product" class="block text-sm font-medium text-gray-700">Product:</label>
-        <select id="product" v-model="form.product" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300">
-          <option value="">Select a product</option>
-          <option value="Product 1">Product 1</option>
-          <option value="Product 2">Product 2</option>
-          <option value="Product 3">Product 3</option>
+        <select id="product" v-model="form.product_id" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300">
+          <option value="" selected>Select a product</option>
+          <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
         </select>
         <p v-if="errors.product" class="text-red-500 text-xs italic">{{ errors.product }}</p>
       </div>
-      <button type="submit" class="bg-blue-500 text-white rounded p-2 hover:bg-blue-600 transition duration-200">Submit</button>
+      <button type="submit" class="bg-blue-500 text-white rounded p-2 hover:bg-blue-600 transition duration-200">Update</button>
     </form>
   </main>
 </template>
 
 <script>
+import axios from 'axios';
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 export default {
   data() {
     return {
       form: {
         name: '',
         email: '',
-        product: '',
+        product_id: '',
         phone: ''
       },
-      errors: {}
+      errors: {},
+      products: [],
+      errorMessage: '',
+      successMessage: '',
     };
   },
   computed: {
@@ -59,9 +70,30 @@ export default {
     submitForm() {
       this.validateForm();
       if (Object.keys(this.errors).length === 0) {
-        console.log(this.form);
-        // Here you can handle the form submission, e.g., send data to an API
+        this.updateOrder();
       }
+    },
+    updateOrder() {
+      const orderId = this.$route.params.id; // Get the order ID from route params
+      const token = localStorage.getItem('token');
+      axios.put(`${apiUrl}/pre-orders/${orderId}`, this.form, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        .then(response => {
+          this.errorMessage = ''; // Clear any previous error messages
+          this.successMessage = 'Your order has been updated successfully!';
+          this.fetchOrderDetails(); // Refresh the order details
+        })
+        .catch(error => {
+          if (error.response && error.response.status === 422) {
+            this.errorMessage = error.response.data.message;
+          } else {
+            this.errorMessage = 'An unexpected error occurred. Please try again later.';
+          }
+          console.error('Error updating order:', error);
+        });
     },
     validateForm() {
       this.errors = {};
@@ -72,13 +104,52 @@ export default {
       if (!emailPattern.test(this.form.email)) {
         this.errors.email = 'Please enter a valid email.';
       }
-      if (!this.form.product) {
+      if (!this.form.product_id) {
         this.errors.product = 'Please select a product.';
       }
       if (this.isXyzEmail && !this.form.phone) {
         this.errors.phone = 'Phone number is required for @xyz.com emails.';
       }
-    }
-  }
+    },
+    fetchProducts() {
+      axios.get(`${apiUrl}/products`)
+        .then(response => {
+          this.products = response.data;
+        })
+        .catch(error => {
+          console.error('Error fetching products:', error);
+        });
+    },
+    fetchOrderDetails() {
+      const orderId = this.$route.params.id; // Get the order ID from route params
+      const token = localStorage.getItem('token');
+      axios.get(`${apiUrl}/pre-orders/${orderId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+      })
+      .then(response => {
+        this.form = response.data.data; // Populate the form with the order details
+      })
+      .catch(error => {
+        if (error.response && error.response.status === 404) {
+          this.$router.push('/admin/orders'); // Redirect to orders page on 404
+        } else {
+          console.error('Error fetching order details:', error);
+        }
+      });
+    },
+    checkAuthentication() {
+      const isAuthenticated = !!localStorage.getItem('token'); // Check if token exists
+      if (!isAuthenticated) {
+        this.$router.push('/login'); // Redirect to login if not authenticated
+      }
+    },
+  },
+  mounted() {
+    this.checkAuthentication();
+    this.fetchProducts();
+    this.fetchOrderDetails(); // Fetch the order details when the component is mounted
+  },
 };
 </script>
