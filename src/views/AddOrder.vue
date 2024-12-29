@@ -74,7 +74,12 @@ export default {
       }
     },
     submitPreOrder() {
-      axios.post(`${apiUrl}/pre-orders`, this.form)
+      const token = localStorage.getItem('token');
+      axios.post(`${apiUrl}/pre-orders`, this.form, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
         .then(response => {
           this.errorMessage = ''; // Clear any previous error messages
           this.successMessage = 'Your pre-order has been submitted successfully!';

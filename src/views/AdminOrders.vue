@@ -142,6 +142,10 @@ export default {
       .catch(error => {
         if (error.response && error.response.status === 404) {
           this.errorTableMessage = 'No record found'; // Set error message for 404
+        } else if(error.response && error.response.status === 401) {
+          localStorage.removeItem('token'); // Clear the token from local storage
+          localStorage.removeItem('user'); // Optionally clear user data
+          this.$router.push('/login'); // Redirect to login if not authenticated
         } else {
           this.errorTableMessage = 'Error fetching orders';
         }
