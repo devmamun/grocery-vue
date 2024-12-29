@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import LoginView from '../views/LoginView.vue';
-import AdminLayout from '../views/AdminLayout.vue';
+import LoginView from '../views/auth/LoginView.vue';
+import AdminLayout from '../views/admin/AdminLayout.vue';
 
 const routes = [
   {
@@ -12,18 +12,18 @@ const routes = [
       {
         path: 'orders',
         name: 'AdminOrders',
-        component: () => import('../views/AdminOrders.vue'),
+        component: () => import('../views/admin/AdminOrders.vue'),
       },
       {
         path: 'orders/add',
         name: 'AddOrder',
-        component: () => import('../views/AddOrder.vue'),
+        component: () => import('../views/admin/AddOrder.vue'),
         meta: { requiresManagerCheck: true },
       },
       {
         path: 'orders/edit/:id',
         name: 'EditOrder',
-        component: () => import('../views/EditOrder.vue'),
+        component: () => import('../views/admin/EditOrder.vue'),
         meta: { requiresManagerCheck: true },
       },
     ],
