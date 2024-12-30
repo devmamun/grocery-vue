@@ -23,7 +23,7 @@
         <input type="email" id="email" v-model="form.email" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300" />
         <p v-if="errors.email" class="text-red-500 text-xs italic">{{ errors.email }}</p>
       </div>
-      <div v-if="isXyzEmail">
+      <div v-if="requiresPhoneNumber">
         <label for="phone" class="block text-sm font-medium text-gray-700">Phone:</label>
         <input type="text" id="phone" v-model="form.phone" class="border rounded p-2 w-full focus:outline-none focus:ring focus:ring-blue-300" />
         <p v-if="errors.phone" class="text-red-500 text-xs italic">{{ errors.phone }}</p>
@@ -62,38 +62,37 @@ export default {
     };
   },
   computed: {
-    isXyzEmail() {
+    requiresPhoneNumber() {
       return this.form.email.endsWith('@xyz.com');
     }
   },
   methods: {
-    submitForm() {
+    async submitForm() {
       this.validateForm();
       if (Object.keys(this.errors).length === 0) {
-        this.updateOrder();
+        await this.updateOrder();
       }
     },
-    updateOrder() {
-      const orderId = this.$route.params.id; // Get the order ID from route params
-      const token = localStorage.getItem('token');
-      axios.put(`${apiUrl}/pre-orders/${orderId}`, this.form, {
+    async updateOrder() {
+      try {
+        const orderId = this.$route.params.id;
+        const token = localStorage.getItem('token');
+        const response = await axios.put(`${apiUrl}/pre-orders/${orderId}`, this.form, {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        })
-        .then(response => {
-          this.errorMessage = ''; // Clear any previous error messages
-          this.successMessage = 'Your order has been updated successfully!';
-          this.fetchOrderDetails(); // Refresh the order details
-        })
-        .catch(error => {
-          if (error.response && error.response.status === 422) {
-            this.errorMessage = error.response.data.message;
-          } else {
-            this.errorMessage = 'An unexpected error occurred. Please try again later.';
-          }
-          console.error('Error updating order:', error);
         });
+        this.errorMessage = '';
+        this.successMessage = 'Your order has been updated successfully!';
+        await this.fetchOrderDetails();
+      } catch (error) {
+        if (error.response && error.response.status === 422) {
+          this.errorMessage = error.response.data.message;
+        } else {
+          this.errorMessage = 'An unexpected error occurred. Please try again later.';
+        }
+        console.error('Error updating order:', error);
+      }
     },
     validateForm() {
       this.errors = {};
@@ -107,49 +106,47 @@ export default {
       if (!this.form.product_id) {
         this.errors.product = 'Please select a product.';
       }
-      if (this.isXyzEmail && !this.form.phone) {
+      if (this.requiresPhoneNumber && !this.form.phone) {
         this.errors.phone = 'Phone number is required for @xyz.com emails.';
       }
     },
-    fetchProducts() {
-      axios.get(`${apiUrl}/products`)
-        .then(response => {
-          this.products = response.data;
-        })
-        .catch(error => {
-          console.error('Error fetching products:', error);
-        });
+    async fetchProducts() {
+      try {
+        const response = await axios.get(`${apiUrl}/products`);
+        this.products = response.data;
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
     },
-    fetchOrderDetails() {
-      const orderId = this.$route.params.id; // Get the order ID from route params
-      const token = localStorage.getItem('token');
-      axios.get(`${apiUrl}/pre-orders/${orderId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-      })
-      .then(response => {
-        this.form = response.data.data; // Populate the form with the order details
-      })
-      .catch(error => {
+    async fetchOrderDetails() {
+      try {
+        const orderId = this.$route.params.id;
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${apiUrl}/pre-orders/${orderId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        });
+        this.form = response.data.data;
+      } catch (error) {
         if (error.response && error.response.status === 404) {
-          this.$router.push('/admin/orders'); // Redirect to orders page on 404
+          this.$router.push('/admin/orders');
         } else {
           console.error('Error fetching order details:', error);
         }
-      });
+      }
     },
     checkAuthentication() {
-      const isAuthenticated = !!localStorage.getItem('token'); // Check if token exists
+      const isAuthenticated = !!localStorage.getItem('token');
       if (!isAuthenticated) {
-        this.$router.push('/login'); // Redirect to login if not authenticated
+        this.$router.push('/login');
       }
     },
   },
-  mounted() {
+  async mounted() {
     this.checkAuthentication();
-    this.fetchProducts();
-    this.fetchOrderDetails(); // Fetch the order details when the component is mounted
+    await this.fetchProducts();
+    await this.fetchOrderDetails();
   },
 };
 </script>
