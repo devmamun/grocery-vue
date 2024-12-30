@@ -1,29 +1,54 @@
-# grocery-ui
+# Grocery UI Project
 
-This template should help get you started developing with Vue 3 in Vite.
+This is a Grocery UI project that requires setting up the environment, installing dependencies, and running the development server. Follow the instructions below to get started.
 
-## Recommended IDE Setup
+## Prerequisites
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js (version >= 20.x)
+- npm (Node Package Manager)
 
-## Customize configuration
+## Setup Instructions
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+1. **Download and Unzip the Project:**
 
-## Project Setup
+   - Download the zip file of the Grocery UI project.
+   - Unzip the file to a directory of your choice.
 
-```sh
-npm install
-```
+2. **Update the `.env` file:**
 
-### Compile and Hot-Reload for Development
+   - Go to the project directory.
+   - Open the `.env` file and update it with your environment settings (e.g. api_url, recaptcha_key).
 
-```sh
-npm run dev
-```
+3. **Install Dependencies:**
 
-### Compile and Minify for Production
+   - Open the terminal and navigate to the project directory.
+   - Run the following command to install the project dependencies:
+   
+     ```bash
+     npm install
+     ```
 
-```sh
-npm run build
-```
+4. **Run the Development Server:**
+
+   - After the installation is complete, run the following command to start the development server:
+   
+     ```bash
+     npm run dev
+     ```
+
+   - This will start the development server on `http://localhost:3000` (default).
+
+## Admin and Manager Credentials
+
+- **Admin Login:**
+  - Email: `admin@gmail.com`
+  - Password: `123456`
+
+- **Manager Login:**
+  - Email: `manager@gmail.com`
+  - Password: `123456`
+
+## Additional Information
+
+- The project uses Vue.js for the frontend and requires Node.js/npm to run.
+- Ensure that the required environment variables are correctly set up in the `.env` file before running the application.
